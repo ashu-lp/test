@@ -15,14 +15,30 @@
         body: null // No body for GET request
       };
 
-      // Call Apps Script function & process response when received
-      google.script.run
-        .withSuccessHandler((rawResponse) => {
-          const processedData = this.processData(rawResponse);
-          const headers = this.extractHeaders(rawResponse);
-          this.plotDataToSheet(headers, processedData);
-        })
-        .fetchDataFromAPI(requestDetails);
+      try {
+        // Wait for Apps Script to fetch data
+        const rawResponse = await this.fetchDataFromAppsScript(requestDetails);
+
+        // Process API response
+        const processedData = this.processData(rawResponse);
+        const headers = this.extractHeaders(rawResponse);
+
+        // Send processed data to Apps Script for plotting
+        this.plotDataToSheet(headers, processedData);
+
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    }
+
+    // Fetch data from Apps Script & return a Promise
+    fetchDataFromAppsScript(requestDetails) {
+      return new Promise((resolve, reject) => {
+        google.script.run
+          .withSuccessHandler(resolve) // Resolve promise when data is received
+          .withFailureHandler(reject) // Reject promise if there is an error
+          .fetchDataFromAPI(requestDetails);
+      });
     }
 
     // Extract headers dynamically from object keys
